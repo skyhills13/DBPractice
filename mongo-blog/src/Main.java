@@ -10,7 +10,6 @@ public class Main {
 		
 		MongoConnector mongoConnector = new MongoConnector();
 		mongoConnector.connectDB();
-		mongoConnector.showPosts();
 	}
 
 }

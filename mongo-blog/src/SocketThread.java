@@ -50,7 +50,7 @@ public class SocketThread extends Thread {
 		BufferedReader in = new BufferedReader(new InputStreamReader(
 				remote.getInputStream()));
 		PrintWriter out = new PrintWriter(remote.getOutputStream());
-		Boolean isPost = false, isUpdate = false, isDelete = false;
+		Boolean isPost = false, isUpdate = false;
 		Boolean isRedirect = false;
 		StringBuilder bodyString = new StringBuilder();
 		String str = ".";
@@ -70,8 +70,14 @@ public class SocketThread extends Thread {
 				isUpdate = true;
 				isRedirect = true;
 			} else if (str.contains("DELETE /")) {
-				isDelete = true;
-				isRedirect = true;
+				System.out.println("this is delete req");
+				String requestURI = str.split(" ")[1];
+				System.out.println(requestURI);
+				String parameter = requestURI.split("\\?")[1];
+				String idStr = parameter.split("=")[1];
+				int postId = Integer.parseInt(idStr);
+				deleteRequest(postId);
+				
 				break;
 			}
 			if (str.startsWith("Content-Length: ")) { // get the
@@ -93,10 +99,7 @@ public class SocketThread extends Thread {
 		}
 		if (isPost) postRequest(bodyString.toString());
 		if (isUpdate) updateRequest(bodyString.toString());
-		if (isDelete) {
-			int postId = Integer.parseInt(bodyString.toString());
-			deleteRequest(postId);
-		}
+		
 		if (isRedirect) {
 			out.println("HTTP/1.1 302 Found");
 			out.println("Location: /");
@@ -117,6 +120,9 @@ public class SocketThread extends Thread {
 	private void updateRequest(String reqBody) throws UnknownHostException {
 		MongoConnector mongoConnector = new MongoConnector();
 		mongoConnector.connectDB();
+		Map<String, String> requestParameterMap = parseRequestBody(reqBody);
+		int id = Integer.parseInt(requestParameterMap.get("id"));
+		mongoConnector.updatePost(id, requestParameterMap.get("title"), requestParameterMap.get("body"));
 		
 	}
 
@@ -128,6 +134,7 @@ public class SocketThread extends Thread {
 	}
 	
 	private Map<String, String> parseRequestBody(String requestBody) {
+		System.out.println(requestBody);
 		Map<String, String> result = new HashMap<String, String>();
 		String[] parameters = requestBody.split("&");
 		for (String parameter : parameters) {
@@ -172,10 +179,11 @@ public class SocketThread extends Thread {
 		List<DBObject> posts = mongoConnector.showPosts();
 		StringBuilder postBuilder = new StringBuilder();
 		for (DBObject post : posts) {
+			int id = (int) post.get("id");
 			String title = (String) post.get("title");
 			String date = post.get("last_updated").toString();
 			String body = (String) post.get("body");
-			String postString = makePostString(title, date, body);
+			String postString = makePostString(id, title, date, body);
 			postBuilder.append(postString);
 		}
 		result = result.replace("$POST", postBuilder.toString());
@@ -183,7 +191,7 @@ public class SocketThread extends Thread {
 		return result;
 	}
 
-	private String makePostString(String title, String date, String body) throws IOException {
+	private String makePostString(int id, String title, String date, String body) throws IOException {
 		BufferedReader freader = new BufferedReader(new FileReader(
 				WEBAPP_POST_TEMPLATE));
 		String buffer;
@@ -195,6 +203,7 @@ public class SocketThread extends Thread {
 		freader.close();
 		String template = sb.toString();
 		try {
+			template = template.replace("$ID", ""+id);
 			template = template.replace("$TITLE", title);
 			template = template.replace("$DATE", date);
 			template = template.replace("$BODY", body);
