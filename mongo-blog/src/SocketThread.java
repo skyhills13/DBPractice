@@ -67,9 +67,9 @@ public class SocketThread extends Thread {
 			} else if (str.contains("POST /update")) {
 				isUpdate = true;
 			} else if (str.contains("DELETE /")) {
-				String postId = str.substring(8);
-				deleteRequest(Integer.parseInt(postId));
-				break;
+//				String postId = str.substring(8);
+//				deleteRequest(Integer.parseInt(postId));
+//				break;
 			}
 			if (str.startsWith("Content-Length: ")) { // get the
 				// content-length
@@ -146,6 +146,7 @@ public class SocketThread extends Thread {
 		StringBuilder sb = new StringBuilder();
 		while ((buffer = freader.readLine()) != null) {
 			sb.append(buffer);
+			sb.append("\n");
 		}
 		freader.close();
 		
@@ -160,7 +161,6 @@ public class SocketThread extends Thread {
 			String date = post.get("last_updated").toString();
 			String body = (String) post.get("body");
 			String postString = makePostString(title, date, body);
-			System.out.println(postString);
 			postBuilder.append(postString);
 		}
 		result = result.replace("$POST", postBuilder.toString());
@@ -175,6 +175,7 @@ public class SocketThread extends Thread {
 		StringBuilder sb = new StringBuilder();
 		while ((buffer = freader.readLine()) != null) {
 			sb.append(buffer);
+			sb.append("\n");
 		}
 		freader.close();
 		String template = sb.toString();
