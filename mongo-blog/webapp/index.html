@@ -53,12 +53,17 @@ function updatePost(e) {
 	
 	//완료, 취소 버튼을 놓고, 완료 누를경우
 	var updatedTitle = document.querySelector(".post-title").innerText;
-	var updatedBody = document.querySelector(".editting").innerText;
-	var requestData = JSON.stringify({id: updateDivId, title: updatedTitle, body: updatedBody}); 
+	var updatedBody = document.querySelector(".editting").value;
+	var requestData = {id: updateDivId, title: updatedTitle, body: updatedBody};
+	var reqDataList = [];
+	for (obj in requestData) {
+		reqDataList.push(obj + "=" + requestData[obj]);
+	}
+	
 	var callback = function(){
 		
 	};
-	xhr(requestData, "POST", "http://localhost:3000/update", callback);
+	xhr(reqDataList.join("&"), "POST", "http://localhost:3000/update", callback);
 }
 
 function deletePost(e) {
