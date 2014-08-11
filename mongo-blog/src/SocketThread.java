@@ -6,7 +6,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.mongodb.DBObject;
 
@@ -33,7 +36,7 @@ public class SocketThread extends Thread {
 				remote.close();
 			}
 		} catch (Exception e) {
-			System.out.println("Error: " + e);
+			e.printStackTrace();
 		} finally {
 			try {
 				s.close();
@@ -47,14 +50,79 @@ public class SocketThread extends Thread {
 		BufferedReader in = new BufferedReader(new InputStreamReader(
 				remote.getInputStream()));
 		PrintWriter out = new PrintWriter(remote.getOutputStream());
-
+		Boolean isPost = false, isUpdate = false;
+		StringBuilder bodyString = new StringBuilder();
 		String str = ".";
+		int length = 0;
+		
 		while (!str.equals("")) {
 			str = in.readLine();
 			System.out.println(str);
+			if (str.contains("GET / ")) {
+				getRequest(out);
+				break;
+			} else if (str.contains("POST / ")) {
+				System.out.println("this is post req");
+				isPost = true;
+			} else if (str.contains("POST /update")) {
+				isUpdate = true;
+			} else if (str.contains("DELETE /")) {
+				String postId = str.substring(8);
+				deleteRequest(Integer.parseInt(postId));
+				break;
+			}
+			if (str.startsWith("Content-Length: ")) { // get the
+				// content-length
+				int index = str.indexOf(':') + 1;
+				String len = str.substring(index).trim();
+				length = Integer.parseInt(len);
+			}
+			
+			if (str.equals("") && length > 0) {
+                int read;
+                while ((read = in.read()) != -1) {
+                	if (read == '+') read = ' ';
+                	bodyString.append((char) read);
+                    if (bodyString.length() == length)
+                        break;
+                }
+            }
 		}
-		testRequest(out);
+		if (isPost) postRequest(bodyString.toString());
+		if (isUpdate) updateRequest(bodyString.toString());
 		out.close();
+	}
+
+	private void deleteRequest(int parseInt) throws UnknownHostException {
+		MongoConnector mongoConnector = new MongoConnector();
+		mongoConnector.connectDB();
+		
+	}
+
+	private void updateRequest(String reqBody) throws UnknownHostException {
+		MongoConnector mongoConnector = new MongoConnector();
+		mongoConnector.connectDB();
+		
+	}
+
+	private void postRequest(String reqBody) throws UnknownHostException {
+		MongoConnector mongoConnector = new MongoConnector();
+		mongoConnector.connectDB();
+		Map<String, String> requestParameterMap = parseRequestBody(reqBody);
+		mongoConnector.writePost(requestParameterMap.get("title"), requestParameterMap.get("body"));
+	}
+	
+	private Map<String, String> parseRequestBody(String requestBody) {
+		Map<String, String> result = new HashMap<String, String>();
+		String[] parameters = requestBody.split("&");
+		for (String parameter : parameters) {
+			int splitPoint = parameter.indexOf("=");
+			String key = parameter.substring(0, splitPoint);
+			String value = parameter.substring(splitPoint+1);
+			System.out.println("key: "+key+", value: "+value);
+			result.put(key, value);
+		}
+		return result;
 	}
 
 	private void sendHeader(PrintWriter out) {
@@ -64,7 +132,7 @@ public class SocketThread extends Thread {
 		out.println("");
 	}
 
-	private void testRequest(PrintWriter out) throws FileNotFoundException, IOException {
+	private void getRequest(PrintWriter out) throws FileNotFoundException, IOException {
 		sendHeader(out);
 		String responseBody = makeHtmlString();
 		out.println(responseBody);
