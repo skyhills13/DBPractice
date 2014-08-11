@@ -1,16 +1,3 @@
-<meta charset="utf-8">
-<title>This is Mongo-Blog</title>
-<div class="new-post">
-	<form name="post" action="/" method="post">
-		<input type="text" name="title" placeholder="input title here"/>
-		<input type="text" name="body" placeholder="input body here"/>
-		<button type="submit">저장</button>
-	</form>
-</div>
-<div class="post-list">$POST
-</div>
-
-<script>
 var updateButton = document.querySelector(".update-button");
 var deleteButton = document.querySelector(".delete-button");
 
@@ -38,7 +25,7 @@ function updatePost(e) {
 	var callback = function() {
 		window.location = "localhost:3000";
 	};
-	xhr(requestData, "POST", "http://localhost:3000/update", callback);
+	xhr(requestData, "POST", "http://10.73.45.54/update", callback);
 }
 
 function deletePost(e) {
@@ -46,6 +33,5 @@ function deletePost(e) {
 	var callback = function(){
 		updateDiv.parentNode.removeChild(updateDiv);
 	};
-	xhr(updateDiv.id, "DELETE", "http://localhost:3000" ,callback);
+	xhr(updateDiv.id, DELETE, "http://localhost:3000" ,callback);
 }
-</script>
