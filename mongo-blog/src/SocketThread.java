@@ -50,7 +50,8 @@ public class SocketThread extends Thread {
 		BufferedReader in = new BufferedReader(new InputStreamReader(
 				remote.getInputStream()));
 		PrintWriter out = new PrintWriter(remote.getOutputStream());
-		Boolean isPost = false, isUpdate = false;
+		Boolean isPost = false, isUpdate = false, isDelete = false;
+		Boolean isRedirect = false;
 		StringBuilder bodyString = new StringBuilder();
 		String str = ".";
 		int length = 0;
@@ -64,11 +65,13 @@ public class SocketThread extends Thread {
 			} else if (str.contains("POST / ")) {
 				System.out.println("this is post req");
 				isPost = true;
+				isRedirect = true;
 			} else if (str.contains("POST /update")) {
 				isUpdate = true;
+				isRedirect = true;
 			} else if (str.contains("DELETE /")) {
-				String postId = str.substring(8);
-				deleteRequest(Integer.parseInt(postId));
+				isDelete = true;
+				isRedirect = true;
 				break;
 			}
 			if (str.startsWith("Content-Length: ")) { // get the
@@ -90,12 +93,24 @@ public class SocketThread extends Thread {
 		}
 		if (isPost) postRequest(bodyString.toString());
 		if (isUpdate) updateRequest(bodyString.toString());
+		if (isDelete) {
+			int postId = Integer.parseInt(bodyString.toString());
+			deleteRequest(postId);
+		}
+		if (isRedirect) {
+			out.println("HTTP/1.1 302 Found");
+			out.println("Location: /");
+			out.println("Server: http-redirect");
+			out.println("");
+			out.flush();
+		}
 		out.close();
 	}
 
-	private void deleteRequest(int parseInt) throws UnknownHostException {
+	private void deleteRequest(int postId) throws UnknownHostException {
 		MongoConnector mongoConnector = new MongoConnector();
 		mongoConnector.connectDB();
+		mongoConnector.deletePost(postId);
 		
 	}
 
@@ -146,6 +161,7 @@ public class SocketThread extends Thread {
 		StringBuilder sb = new StringBuilder();
 		while ((buffer = freader.readLine()) != null) {
 			sb.append(buffer);
+			sb.append("\n");
 		}
 		freader.close();
 		
@@ -160,7 +176,6 @@ public class SocketThread extends Thread {
 			String date = post.get("last_updated").toString();
 			String body = (String) post.get("body");
 			String postString = makePostString(title, date, body);
-			System.out.println(postString);
 			postBuilder.append(postString);
 		}
 		result = result.replace("$POST", postBuilder.toString());
@@ -175,6 +190,7 @@ public class SocketThread extends Thread {
 		StringBuilder sb = new StringBuilder();
 		while ((buffer = freader.readLine()) != null) {
 			sb.append(buffer);
+			sb.append("\n");
 		}
 		freader.close();
 		String template = sb.toString();
