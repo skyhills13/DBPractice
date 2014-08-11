@@ -6,11 +6,15 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
+
+import com.mongodb.DBObject;
 
 
 public class SocketThread extends Thread {
 	
-	private static final String WEBAPP_RESULT_HTML = "./webapp/result.html";
+	private static final String WEBAPP_INDEX_HTML = "./webapp/index.html";
+	private static final String WEBAPP_POST_TEMPLATE = "./webapp/post-template.html";
 	private final static int SERVER_PORT = 3000;
 
 	@Override
@@ -47,9 +51,10 @@ public class SocketThread extends Thread {
 		String str = ".";
 		while (!str.equals("")) {
 			str = in.readLine();
-			if ("/test".equals(str))
-				testRequest(out);
+			System.out.println(str);
 		}
+		testRequest(out);
+		out.close();
 	}
 
 	private void sendHeader(PrintWriter out) {
@@ -59,16 +64,16 @@ public class SocketThread extends Thread {
 		out.println("");
 	}
 
-	private void testRequest(PrintWriter out) {
+	private void testRequest(PrintWriter out) throws FileNotFoundException, IOException {
 		sendHeader(out);
-		String responseBody = "you requested /test"; 
+		String responseBody = makeHtmlString();
 		out.println(responseBody);
 		out.flush();
 	}
 	
 	private String makeHtmlString() throws FileNotFoundException, IOException {
 		BufferedReader freader = new BufferedReader(new FileReader(
-				WEBAPP_RESULT_HTML));
+				WEBAPP_INDEX_HTML));
 		String buffer;
 		StringBuilder sb = new StringBuilder();
 		while ((buffer = freader.readLine()) != null) {
@@ -77,11 +82,43 @@ public class SocketThread extends Thread {
 		freader.close();
 		
 		String result = sb.toString();
-		result = result.replace("$TITLE", "post title");
-		result = result.replace("$DATE", "today");
-		result = result.replace("$CONTENT", "I am ");
+		
+		MongoConnector mongoConnector = new MongoConnector();
+		mongoConnector.connectDB();
+		List<DBObject> posts = mongoConnector.showPosts();
+		StringBuilder postBuilder = new StringBuilder();
+		for (DBObject post : posts) {
+			String title = (String) post.get("title");
+			String date = post.get("last_updated").toString();
+			String body = (String) post.get("body");
+			String postString = makePostString(title, date, body);
+			System.out.println(postString);
+			postBuilder.append(postString);
+		}
+		result = result.replace("$POST", postBuilder.toString());
 		
 		return result;
+	}
+
+	private String makePostString(String title, String date, String body) throws IOException {
+		BufferedReader freader = new BufferedReader(new FileReader(
+				WEBAPP_POST_TEMPLATE));
+		String buffer;
+		StringBuilder sb = new StringBuilder();
+		while ((buffer = freader.readLine()) != null) {
+			sb.append(buffer);
+		}
+		freader.close();
+		String template = sb.toString();
+		try {
+			template = template.replace("$TITLE", title);
+			template = template.replace("$DATE", date);
+			template = template.replace("$BODY", body);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return template;
 	}
 	
 }

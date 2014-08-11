@@ -1,10 +1,13 @@
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 
@@ -34,12 +37,13 @@ public class MongoConnector {
 		coll.insert(doc);
 	}
 	
-	public void showPosts() {
-		
+	public List<DBObject> showPosts() {
+		ArrayList<DBObject> result = new ArrayList<DBObject>();
 		DBCursor cursor = coll.find();	
 		while(cursor.hasNext()) {
-			System.out.println(cursor.next());
+			result.add(cursor.next());
 		}
+		return result;
 	}
 	
 	public void deletePost(int id){
