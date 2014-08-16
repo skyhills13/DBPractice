@@ -101,11 +101,8 @@ public class SocketThread extends Thread {
 		if (isUpdate) updateRequest(bodyString.toString());
 		
 		if (isRedirect) {
-			out.println("HTTP/1.1 302 Found");
-			out.println("Location: /");
-			out.println("Server: http-redirect");
-			out.println("");
-			out.flush();
+			System.out.println("redirect ok");
+			sendRedirectHeader(out);
 		}
 		out.close();
 	}
@@ -146,7 +143,12 @@ public class SocketThread extends Thread {
 		}
 		return result;
 	}
-
+	private void sendRedirectHeader(PrintWriter out) {
+		out.println("HTTP/1.1 302 Found");
+		out.println("Location: /");
+		out.println("Server: http-redirect");
+		out.println("");
+	}
 	private void sendHeader(PrintWriter out) {
 		out.println("HTTP/1.0 200 OK");
 		out.println("Content-Type: text/html");

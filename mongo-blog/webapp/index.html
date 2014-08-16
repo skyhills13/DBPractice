@@ -1,5 +1,34 @@
 <meta charset="utf-8">
 <title>This is Mongo-Blog</title>
+
+<style>
+.new-post {
+	width: 460px;
+	min-height: 200px;
+	margin-top: 10px;
+	padding: 10px;
+	background-color: #bbb;
+	border-radius: 20px;
+	text-align: center;
+}
+.post {
+	width: 460px;
+	min-height: 200px;
+	margin-top: 10px;
+	padding: 10px;
+	background-color: #ddd;
+	border-radius: 20px;
+}
+input {
+	width: 420px;
+}
+input[name="body"] {
+	height: 200px;
+}
+span {
+	display:block;
+}
+</style>
 <div class="new-post">
 	<form name="post" action="/" method="post">
 		<input type="text" name="title" placeholder="input title here"/>
@@ -11,6 +40,7 @@
 </div>
 
 <script>
+var isUpdating = false;
 var updateButtons = document.querySelectorAll(".update-button");
 var deleteButtons = document.querySelectorAll(".delete-button");
 
@@ -22,6 +52,8 @@ for (var i = 0; i < updateButtons.length; i++) {
 }
 
 function setUpdateState(e) {
+	if (isUpdating == true) return;
+	isUpdating = true;
 	var postDiv = e.target.parentNode;
 	var editable = document.createElement("input");
 	var editBtn = postDiv.querySelector(".update-button");
@@ -31,38 +63,45 @@ function setUpdateState(e) {
 	editable.className = "editting";
 	postDiv.insertBefore(editable, editBtn);
 	var saveBtn = document.createElement("button");
+	saveBtn.className = "save";
 	saveBtn.innerText = "저장";
 	postDiv.insertBefore(saveBtn, editBtn);
 	
 	saveBtn.addEventListener("click", updatePost);
-	
 }
 
 function xhr(requestData, method, url, callback){
 	var request = new XMLHttpRequest();
 	request.open(method, url, true );
 	request.onload = function(){
-		callback();
+		callback(requestData);
 	}
 	request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
 	request.send(requestData);
 }
 
 function updatePost(e) {
-	var updateDivId = e.target.parentNode.id;
+	var updateDiv = e.target.parentNode;
 	
-	//완료, 취소 버튼을 놓고, 완료 누를경우
+	//저장 버튼을 누를 경우
 	var updatedTitle = document.querySelector(".post-title").innerText;
 	var updatedBody = document.querySelector(".editting").value;
-	var requestData = {id: updateDivId, title: updatedTitle, body: updatedBody};
+	var requestData = {id: updateDiv.id, title: updatedTitle, body: updatedBody};
 	var reqDataList = [];
 	for (obj in requestData) {
 		reqDataList.push(obj + "=" + requestData[obj]);
 	}
 	
-	var callback = function(){
-		
-	};
+	var callback = function(requestData){
+		var updatedBody = updateDiv.querySelector(".post-content");
+		updatedBody.innerText = requestData.body;
+		var inputElem = document.querySelector(".editting")
+		var updateBtn = inputElem.parentNode.querySelector(".save");
+		console.log(inputElem.parentNode);
+		inputElem.parentNode.removeChild(updateBtn);
+		inputElem.parentNode.removeChild(inputElem);
+		isUpdating = false;
+	}.bind(this, requestData);
 	xhr(reqDataList.join("&"), "POST", "http://localhost:3000/update", callback);
 }
 
